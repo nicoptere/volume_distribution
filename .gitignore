@@ -1,0 +1,4 @@
+assets/source
+
+#ignore thumbnails created by windows
+Thumbs.db
