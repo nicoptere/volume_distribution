@@ -1,65 +1,67 @@
 
+var skeleton, invertSkeleton;
 
 window.onload = function(){
 
 	var queue = [
 
-		{name: "meshline_vs", 	url: "./glsl/meshline_vs.glsl",		type:assetsLoader.TXT	},
-		{name: "meshline_fs", 	url: "./glsl/meshline_fs.glsl",		type:assetsLoader.TXT	},
 		{name: "particles_vs",	url: "./glsl/particles_vs.glsl",	type:assetsLoader.TXT	},
 		{name: "particles_fs",	url: "./glsl/particles_fs.glsl",	type:assetsLoader.TXT	},
 		{name: "sem_vs", 		url: "./glsl/sem_vs.glsl",			type:assetsLoader.TXT	},
 		{name: "sem_fs", 		url: "./glsl/sem_fs.glsl",			type:assetsLoader.TXT	},
         {name: "env_vs", 		url: "./glsl/env_vs.glsl",			type:assetsLoader.TXT	},
         {name: "env_fs", 		url: "./glsl/env_fs.glsl",			type:assetsLoader.TXT	},
-        {name: "env_fs", 		url: "./glsl/env_fs.glsl",			type:assetsLoader.TXT	},
 
 		{
 			name: "silver",
-			url: "../assets/textures/matcap/test_steel.jpg",type:assetsLoader.IMG
+			url: "./assets/textures/matcap/test_steel.jpg",type:assetsLoader.IMG
 		},
 		{
 			name: "blue",
-			url: "../assets/textures/matcap/JG_Drink01.png",type:assetsLoader.IMG
+			url: "./assets/textures/matcap/JG_Drink01.png",type:assetsLoader.IMG
 		},
 		{
 			name: "particlesTexture",
-			url: "../assets/textures/particles.png",type:assetsLoader.IMG
+			url: "./assets/textures/particles.png",type:assetsLoader.IMG
 		},
 
 		{
 			name: "skeleton",
-			url: "../assets/models/suzanne.js",type:assetsLoader.MOD
+			url: "./assets/models/binaries/suzanne.js",type:assetsLoader.MOD
 		},
 		{
 			name: "invert",
-			url: "../assets/models/suzanne_invert.js",type:assetsLoader.MOD
+			url: "./assets/models/binaries/suzanne_invert.js",type:assetsLoader.MOD
 		},
-
-		/*
-		 {
-		 name: "particles",
-		 url:"particles_65536_1.txt",			type:assetsLoader.TXT,
-		 onLoad:function (txt) {
-			 var res = txt.split( '|' );
-			 var obj = {};
-			 obj.pos = res[0].split(',').map( function( v ){return parseFloat( v ); } );
-			 obj.dst = res[1].split(',').map( function( v ){return parseFloat( v ); } );
-			 assetsLoader.particles = obj;
-		 }
-		 },//*/
+		{
+			name: "particles",
+			url:"./assets/models/particles/suzanne/volume65k.txt", type:assetsLoader.TXT,
+			onLoad:function (txt) {
+				var obj = {};
+				var res = txt.split( '|' );
+				obj.pos = res[0].split(',').map( function( v ){return parseFloat( v ); } );
+				obj.dst = res[1].split(',').map( function( v ){return parseFloat( v ); } );
+				assetsLoader.particles = obj;
+			}
+		}
 
 	];
-
-    var v0 = new THREE.Vector3(0,1,0);
-    var v1 = new THREE.Vector3(0,0.001,0);
-    v0.normalize();
-    v1.normalize();
-    console.log( v0.dot( v1 ) );
-
-
 	assetsLoader.load(queue, init);
 };
+
+function init() {
+
+    init3D();
+    camera.position.z = 30;
+
+    createMaterials();
+
+    createMeshes();
+
+    createParticles();
+    render();
+
+}
 
 function createMaterials(){
 
@@ -117,29 +119,15 @@ function createMaterials(){
 
 function createMeshes() {
 
-	skeleton = new THREE.Mesh(assetsLoader.skeleton, materials.silver);
-	scene.add(skeleton);
+    skeleton = new THREE.Mesh(assetsLoader.skeleton, materials.silver);
+    scene.add(skeleton);
 
-	invertSkeleton = new THREE.Mesh(assetsLoader.invert, materials.blue);
-	scene.add(invertSkeleton);
+    invertSkeleton = new THREE.Mesh(assetsLoader.invert, materials.blue);
+    scene.add(invertSkeleton);
 
-	var env = new THREE.Mesh(new THREE.CylinderBufferGeometry(.5, .5, 1, 64), materials.environment);
-	env.scale.multiplyScalar(1000);
-	scene.add(env);
-
-}
-
-function init() {
-
-	init3D();
-	camera.position.z = 30;
-
-	createMaterials();
-
-	createMeshes();
-
-	createParticles();
-	render();
+    var env = new THREE.Mesh(new THREE.CylinderBufferGeometry(.5, .5, 1, 64), materials.environment);
+    env.scale.multiplyScalar(1000);
+    scene.add(env);
 
 }
 
@@ -149,9 +137,10 @@ function createParticles(){
 	if( assetsLoader.particles === undefined ){
 
 		var model = invertSkeleton;
-		var count = Math.pow( 2, 10 );
+		var count = Math.pow( 2, 16 );
 
 		assetsLoader.particles = Scatter.distribute( model, count );
+		Scatter.toString( assetsLoader.particles, 3, "surface65k" );
 
 	}
 
@@ -159,15 +148,16 @@ function createParticles(){
 	g.addAttribute( "position", new THREE.BufferAttribute( new Float32Array( assetsLoader.particles.pos ), 3 ));
 	g.addAttribute( "dest", new THREE.BufferAttribute( new Float32Array( assetsLoader.particles.dst ), 3 ));
 
+	//adds uvs to the particles (the texture is a 4*4 spritesheet
 	var uvCount = ( g.getAttribute("position").array.length / 3 ) * 2;
-	var uvOffset = [];
-	while( uvCount-- ){
-		uvOffset.push( Math.floor( Math.random() * 4 ) / 4, Math.floor( Math.random() * 4 ) / 4 );
+	var uvOffset = new Float32Array( uvCount );
+	var i = 0;
+	while( i < uvCount ){
+		uvOffset[ i++ ] = Math.floor( Math.random() * 4 ) / 4;
 	}
-	g.addAttribute( "uvOffset", new THREE.BufferAttribute( new Float32Array( uvOffset ), 2 ));
+	g.addAttribute( "uvOffset", new THREE.BufferAttribute( uvOffset, 2 ));
 	particles = new THREE.Points(g,materials.particles);
 	scene.add( particles );
-
 
 }
 
@@ -176,8 +166,8 @@ function render() {
 
 	requestAnimationFrame( render );
 	controls.update();
-	var time = ( Date.now() - startTime ) * 0.001;
 
+	var time = ( Date.now() - startTime ) * 0.001;
 	for( var k in materials ){
 
 		if( materials[ k ].uniforms.time !== undefined ){

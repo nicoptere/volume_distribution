@@ -12,6 +12,8 @@ var Scatter = function( scatter ){
         //this will store the results
         var coords = [];
         var dests = [];
+        //temporary vars to store the position and destination
+        var p0, p1;
 
         //this has an influence as to how the raycasting is performed
         var side = mesh.material.side;
@@ -24,10 +26,13 @@ var Scatter = function( scatter ){
         mesh.geometry.computeBoundingBox();
         var bbox = mesh.geometry.boundingBox;
 
-            // 'inflates' the box by 10% to prevent colinearity
-            // or coplanarity of the origin with the mesh
-            bbox.min.multiplyScalar( 1.1 );
-            bbox.max.multiplyScalar( 1.1 );
+        // 'inflates' the box by 10% to prevent colinearity
+        // or coplanarity of the origin with the mesh
+        bbox.min.multiplyScalar( 1.1 );
+        bbox.max.multiplyScalar( 1.1 );
+
+        //computes the box' size to compute random points
+        var size = bbox.max.sub( bbox.min );
 
         //to perform raycast
         raycaster = raycaster || new THREE.Raycaster();
@@ -37,9 +42,9 @@ var Scatter = function( scatter ){
         for( var i = 0; i < count; i++ ){
 
             // randomize the rays origin
-            o.x = lerp( Math.random(), bbox.min.x, bbox.max.x );
-            o.y = lerp( Math.random(), bbox.min.y, bbox.max.y );
-            o.z = lerp( Math.random(), bbox.min.z, bbox.max.z );
+            o.x = bbox.min.x + Math.random() * size.x;
+            o.y = bbox.min.y + Math.random() * size.y;
+            o.z = bbox.min.z + Math.random() * size.z;
 
             //randomize the ray's direction
             d.x = ( Math.random() - .5 );
@@ -61,29 +66,51 @@ var Scatter = function( scatter ){
 
             }else{
 
-                //checks if we meet the conditions
+                //checks if we meet the conditions:
+                //the origin must be outside
                 var valid = intersections.length >= 2 && ( intersections.length % 2 == 0 );
                 if (valid) {
 
-                    // make sure that the: origin - direction vector have the same
-                    // direction as the normal of the faces they hit )
-                    var dp0 = d.dot(intersections[1].face.normal) <= -.1;
+                    //tests all the intersection pairs
+                    var additions = -1;
+                    for( var j = 0; j < intersections.length; j+= 2 ){
 
-                    d.negate();
-                    var dp1 = d.dot(intersections[0].face.normal) <= -.1;
+                        // make sure that the origin -> direction vector have the same
+                        // direction as the normal of the face they hit
 
-                    if (dp0 || dp1) {
-                        i--;
-                        continue;
+                        //test the direction against the outwards' face's normal
+                        var dp0 = d.dot(intersections[ j + 1 ].face.normal) <= 0;
+
+                        //flips the direction to make it 'look at' the origin
+                        d.negate();
+
+                        //test the direction against the inwards' face's normal
+                        var dp1 = d.dot(intersections[ j ].face.normal) <= 0;
+
+                        //flips the direction again for the next test
+                        d.negate();
+
+                        // if both vectors pairs head in the same direction
+                        // the point is guarranteed to be inside
+                        if( dp0 || dp1){
+                            continue;
+                        }
+
+                        //adds the points
+                        if( coords.length < count * 3 ){
+                            console.log("ok")
+                            p0 = intersections[j].point;
+                            coords.push( p0.x, p0.y, p0.z);
+                            p1 = intersections[j+1].point;
+                            dests.push( p1.x, p1.y, p1.z);
+                            additions++;
+                        }
                     }
-
-                    console.log('ok');
-                    coords.push(intersections[0].point.x, intersections[0].point.y, intersections[0].point.z);
-                    dests.push(intersections[1].point.x, intersections[1].point.y, intersections[1].point.z);
+                    //increments the counter by the number of additions
+                    i += additions;
 
                 }else{
-
-                    //invalid intersection, try again
+                    //invalid intersection, try again...
                     i--;
                 }
             }
@@ -92,7 +119,6 @@ var Scatter = function( scatter ){
 
         //resets the material side
         mesh.material.side = side;
-
         return {
             pos:coords,
             dst:dests
@@ -100,12 +126,14 @@ var Scatter = function( scatter ){
 
     };
 
+
     /**
      * converts the result of the scatter to a text string
      * @param particles coordinates of the points/dest
-     * @param decimalPrecision
+     * @param decimalPrecision floating point precision
+     * @param name optional: name for the file
      */
-    scatter.particlesToString = function( particles, decimalPrecision ){
+    scatter.toString = function( particles, decimalPrecision, name ){
 
         var precision = decimalPrecision;
         if( precision === undefined )precision = 3;
@@ -113,7 +141,7 @@ var Scatter = function( scatter ){
         var dests = assetsLoader.particles.dst.map( function( v ){return v.toFixed( precision ); });
 
         var count = ( coords.length / 3 );
-        var label = "particles_"+ count +".txt";
+        var label = ( name || ( "particles_"+ count ) ) +".txt";
         var data = coords.join(',') + "|" + dests.join(',') ;
 
         var txtData = new Blob([data], { type: 'text/csv' });

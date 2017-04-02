@@ -71,11 +71,37 @@ float noise(vec2 v)
     return 130.0 * dot(m, g);
 }
 
-varying float vY;
+vec4 FAST_32_hash( vec2 gridcell )
+{
+    //    gridcell is assumed to be an integer coordinate
+    const vec2 OFFSET = vec2( 26.0, 161.0 );
+    const float DOMAIN = 71.0;
+    const float SOMELARGEFLOAT = 951.135664;
+    vec4 P = vec4( gridcell.xy, gridcell.xy + vec2( 1.,1.) );
+    P = P - floor(P * ( 1.0 / DOMAIN )) * DOMAIN;    //    truncate the domain
+    P += OFFSET.xyxy;                                //    offset to interesting part of the noise
+    P *= P;                                          //    calculate and return the hash
+    return fract( P.xzxz * P.yyww * vec4( 1.0 / SOMELARGEFLOAT ) );
+}
+
+varying float vAlpha;
+varying vec2 vUv;
 void main() {
 
-    vY = position.y + .5;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    float t = time;
+    float a = alpha;
+
+    a = smoothstep( -1.,1., noise( vec2( position.x * position.y + time * 2. , time * .5 ) * .1 ) );
+    vec3 pos = mix( position, dest, a );
+
+    vAlpha = max( .25, a );
+    vUv = uvOffset;
+
+    float N1 = modBig;
+    float P1 = step(mod( floor( position.x * N1 ), N1 ), 1. );
+    gl_PointSize = 4. + ( pointSize * P1 );
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( pos, 1.0 );
 
 
 }
