@@ -10,9 +10,14 @@ renderer.setPixelRatio( window.devicePixelRatio );
 document.body.appendChild( renderer.domElement );
 
 
+
+var resolution = new THREE.Vector2( window.innerWidth, window.innerHeight );
+
+
 var controls = new THREE.OrbitControls( camera, renderer.domElement );
 camera.position.z = 30;
 
+var materials = {};
 
 
 var lines = [], matCap, text, startTime;
@@ -21,7 +26,6 @@ var particlesTex;
 var invTex;
 var inv;
 var origin;
-var div = document.getElementById("waiter");
 
 // var colors = [0xed6a5a, 0xf4f1bb, 0x9bc1bc, 0x5ca4a9, 0xe6ebe0, 0xf0b67f, 0xfe5f55, 0xd6d1b1, 0xc7efcf, 0xeef5db, 0x50514f, 0xf25f5c, 0xffe066, 0x247ba0, 0x70c1b3 ];
 // colors = [0x556270, 0x4ECDC4, 0xC7F464, 0xFF6B6B, 0xC44D58 ];
@@ -31,66 +35,170 @@ var colors = "264653-2a9d8f-e9c46a-f4a261-e76f51".split('-').map( function( v ){
 // colors = colors.concat( "f2f3ae-edd382-e7a977-e87461-b38cb4".split('-').map( function( v ){ return parseInt( "0x" + v ); } ) );
 colors = colors.concat( "114b5f-456990-028090-79b473-70a37f".split('-').map( function( v ){ return parseInt( "0x" + v ); } ) );
 
-
-var resolution = new THREE.Vector2( window.innerWidth, window.innerHeight );
-
-
 function lerp ( t, a, b ){ return a * (1-t) + b * t; }
 function norm( t, a, b ){return ( t - a ) / ( b - a );}
 function map( t, a0, b0, a1, b1 ){ return lerp( norm( t, a0, b0 ), a1, b1 );}
 function parabola( x, k ) {return Math.pow( 4 * x * ( 1 - x ), k );}
 
-var PathLoader = function(){
-	function PL(){};
-	function load(url, cb ){
-		var req = new XMLHttpRequest();
-		var scope = this;
-		req.onload = function( e ){
-			scope.parse(e.target.responseText, cb);
-		};
-		req.open("GET", url );
-		req.send();
-	}
-
-	//parse the OBJ vertices
-	function parse(str, cb){
-		var vertices = [];
-		var vs = str.match(/v\s.*/g);
-		vs.map( function( v ){
-			var st = v.replace( /v\s+/, '').split( /\s/ );
-			vertices.push( parseFloat(st[0]), parseFloat(st[1]), parseFloat(st[2]) );
-		});
-		cb( vertices );
-	}
-	var p = PL.prototype;
-	p.constructor = PL;
-	p.load = load;
-	p.parse = parse;
-	return PL;
-}();
-
 window.onload = function(){
+
 	var queue = [
-		{name: "meshline_vs", url: "./glsl/meshline_vs.glsl"},
-		{name: "meshline_fs", url: "./glsl/meshline_fs.glsl"},
-		{name: "particles_vs", url: "./glsl/particles_vs.glsl"},
-		{name: "particles_fs", url: "./glsl/particles_fs.glsl"},
-		{name: "sem_vs", url: "./glsl/sem_vs.glsl"},
-		{name: "sem_fs", url: "./glsl/sem_fs.glsl"},
-        {name: "env_vs", url: "./glsl/env_vs.glsl"},
-        {name: "env_fs", url: "./glsl/env_fs.glsl"}
+
+		{name: "meshline_vs", 	url: "./glsl/meshline_vs.glsl",		type:assetsLoader.TXT	},
+		{name: "meshline_fs", 	url: "./glsl/meshline_fs.glsl",		type:assetsLoader.TXT	},
+		{name: "particles_vs",	url: "./glsl/particles_vs.glsl",	type:assetsLoader.TXT	},
+		{name: "particles_fs",	url: "./glsl/particles_fs.glsl",	type:assetsLoader.TXT	},
+		{name: "sem_vs", 		url: "./glsl/sem_vs.glsl",			type:assetsLoader.TXT	},
+		{name: "sem_fs", 		url: "./glsl/sem_fs.glsl",			type:assetsLoader.TXT	},
+        {name: "env_vs", 		url: "./glsl/env_vs.glsl",			type:assetsLoader.TXT	},
+        {name: "env_fs", 		url: "./glsl/env_fs.glsl",			type:assetsLoader.TXT	},
+        {name: "env_fs", 		url: "./glsl/env_fs.glsl",			type:assetsLoader.TXT	},
+
+		/*
+        {
+        	name: "particles",
+			url:"particles_8k.txt",			type:assetsLoader.TXT,
+			onLoad:function (txt) {
+				var res = txt.split( '|' );
+				var obj = {};
+				obj.pos = res[0].split(',').map( function( v ){return parseFloat( v ); } );
+				obj.dst = res[1].split(',').map( function( v ){return parseFloat( v ); } );
+				assetsLoader.particles = obj;
+			}
+        },//*/
+
+		{
+			name: "silver",
+			url: "../assets/textures/matcap/test_steel.jpg",type:assetsLoader.IMG
+		},
+		{
+			name: "blue",
+			url: "../assets/textures/matcap/JG_Drink01.png",type:assetsLoader.IMG
+		},
+		{
+			name: "particlesTexture",
+			url: "../assets/textures/particles.png",type:assetsLoader.IMG
+		},
+
+		{
+			name: "skeleton",
+			url: "../assets/models/skeleton.js",type:assetsLoader.MOD
+		},
+		{
+			name: "invert",
+			url: "../assets/models/invert.js",type:assetsLoader.MOD
+		}
 	];
 
-	shaders.load(queue, init);
+	assetsLoader.load(queue, init);
+};
+
+function createMaterials(){
+
+	startTime = Date.now();
+
+	materials.silver = new THREE.ShaderMaterial({
+		uniforms:{
+			tMatCap : {type:"t", value:assetsLoader.silver },
+			time:{type:"f", value:0 },
+			alpha:{type:"f", value:0 }
+		},
+		vertexShader:assetsLoader.sem_vs,
+		fragmentShader:assetsLoader.sem_fs
+	});
+
+	materials.blue = new THREE.ShaderMaterial({
+		uniforms:{
+			tMatCap : {type:"t", value:assetsLoader.blue },
+			time:{type:"f", value:0 },
+			alpha:{type:"f", value:0.45 }
+		},
+		vertexShader:assetsLoader.sem_vs,
+		fragmentShader:assetsLoader.sem_fs,
+		transparent: true,
+		side:THREE.DoubleSide,
+		depthWrite:false
+	});
+
+	materials.particles = new THREE.ShaderMaterial({
+		uniforms : {
+			texture:{type:"t", value:assetsLoader.particlesTexture},
+			time:{type:"f", value:0},
+			modBig:{type:"f", value:25},
+			pointSize:{type:"f", value:4},
+			alpha:{type:"f", value:1}
+		},
+		vertexShader:	assetsLoader.particles_vs,
+		fragmentShader:	assetsLoader.particles_fs,
+		transparent:	true
+	});
+
+	materials.environment = new THREE.ShaderMaterial({
+		uniforms : {
+			horizon:{type:"f", value: .45 },
+			spread:{type:"f", value: .05 },
+			topColor:{type:"v3", value:new THREE.Color( 0x505050 )},
+			bottomColor:{type:"v3", value:new THREE.Color( 0x101010 )}
+		},
+		vertexShader:	assetsLoader.env_vs,
+		fragmentShader:	assetsLoader.env_fs,
+		side:THREE.BackSide
+	});
+
 }
 
 function init() {
 
-	render();
-	readModel();
+	// readModel();
 
+	createMaterials();
+	createMeshes();
+
+ 	// collectPoints();//assetsLoader.skeleton, assetsLoader.invert, assetsLoader.particles );
+	// console.log( assetsLoader )
+	render();
 }
 
+function createMeshes(){
+
+
+	text = new THREE.Mesh( assetsLoader.skeleton, materials.silver );
+	// text.geometry.computeVertexNormals();
+	scene.add( text );
+
+	// var invert = ;
+	inv = new THREE.Mesh( assetsLoader.invert, materials.blue );
+	// inv.geometry.computeVertexNormals();
+	scene.add( inv );
+
+	var m = new THREE.Mesh( new THREE.CylinderBufferGeometry( .5,.5, 1, 64 ), materials.environment );
+	m.scale.multiplyScalar( 1000 );
+	scene.add( m );
+
+	if( assetsLoader.particles === undefined ){
+
+		var count = Math.pow( 2, 12 );
+		var model = inv;
+
+		distribute( count, model );
+
+	}
+
+	var g = new THREE.BufferGeometry();
+	g.addAttribute( "position", new THREE.BufferAttribute( new Float32Array( assetsLoader.particles.pos ), 3 ));
+	g.addAttribute( "dest", new THREE.BufferAttribute( new Float32Array( assetsLoader.particles.dst ), 3 ));
+
+	var uvCount = ( g.getAttribute("position").array.length / 3 ) * 2;
+	var uvOffset = [];
+	while( uvCount-- ){
+		uvOffset.push( Math.floor( Math.random() * 4 ) / 4, Math.floor( Math.random() * 4 ) / 4 );
+	}
+	g.addAttribute( "uvOffset", new THREE.BufferAttribute( new Float32Array( uvOffset ), 2 ));
+	particles = new THREE.Points(g,materials.particles);
+	scene.add( particles );
+
+
+}
 
 function readModel( cb ) {
 
@@ -131,246 +239,88 @@ function readModel( cb ) {
 
 }
 
-function collectPoints( source, invert, particlesData ) {
+function distribute( count, model ) {
 
-	console.log( source )
+	//this will store the results
+	var coords = [];
+	var dests = [];
+	var dubious = 0;
 
-	startTime = Date.now();
-	var gold = new THREE.ShaderMaterial({
-		uniforms:{
-			tMatCap : {type:"t", value:matCap },
-			time:{type:"f", value:0 },
-			alpha:{type:"f", value:0 }
-		},
-		vertexShader:shaders.sem_vs,
-		fragmentShader:shaders.sem_fs
-	});
+	//this has an influence as to how the raycasting is performed
+	model.material.side = THREE.DoubleSide;
 
-	source.computeVertexNormals();
-	text = new THREE.Mesh( source, gold );
-	scene.add( text );
-	var mat = new THREE.ShaderMaterial({
-		uniforms:{
-			tMatCap : {type:"t", value:invTex },
-			time:{type:"f", value:0 },
-			alpha:{type:"f", value:0.45 }
-		},
-		vertexShader:shaders.sem_vs,
-		fragmentShader:shaders.sem_fs,
-		transparent: true,
-		side:THREE.DoubleSide,
-		depthWrite:false
-	});
+	//we'll need this
+	model.geometry.computeFaceNormals();
 
-	invert.computeVertexNormals();
-	inv = new THREE.Mesh( invert, mat );
-    scene.add( inv );
+	//this is used to distributte the origins of the rays
+	model.geometry.computeBoundingBox();
+	var bbox = model.geometry.boundingBox;
 
-	var pMat = new THREE.ShaderMaterial({
-		uniforms : {
-			texture:{type:"t", value:particlesTex},
-			time:{type:"f", value:0},
-			modBig:{type:"f", value:25},
-			pointSize:{type:"f", value:4},
-			alpha:{type:"f", value:1}
-		},
-		vertexShader:	shaders.particles_vs,
-		fragmentShader:	shaders.particles_fs,
-		transparent:	true,
-		// depthTest:	false
-	});
+		//'inflates' the box a bit to prevent colinear points
+		bbox.min.multiplyScalar( 1.1 );
+		bbox.max.multiplyScalar( 1.1 );
 
+	//to perform raycast
+	var raycaster = new THREE.Raycaster();
+	var o = new THREE.Vector3();
+	var d = new THREE.Vector3();
 
-    var envMat = new THREE.ShaderMaterial({
-        uniforms : {
-            horizon:{type:"f", value: .45 },
-            spread:{type:"f", value: .05 },
-            topColor:{type:"v3", value:new THREE.Color( 0x505050 )},
-            bottomColor:{type:"v3", value:new THREE.Color( 0x101010 )}
-        },
-        vertexShader:	shaders.env_vs,
-        fragmentShader:	shaders.env_fs,
-		side:THREE.BackSide
-    });
-	var m = new THREE.Mesh( new THREE.CylinderBufferGeometry( .5,.5, 1, 64 ), envMat );
-	m.scale.multiplyScalar( 1000 );
-    scene.add( m );
+	for( var i = 0; i < count; i++ ){
 
+		o.x = lerp( Math.random(), bbox.min.x, bbox.max.x );
+		o.y = lerp( Math.random(), bbox.min.y, bbox.max.y );
+		o.z = lerp( Math.random(), bbox.min.z, bbox.max.z );
 
+		d.x = ( Math.random() - .5 );
+		d.y = ( Math.random() - .5 );
+		d.z = ( Math.random() - .5 );
+		d.normalize();
 
-	var g = new THREE.BufferGeometry();
-	if( particlesData === undefined ){
+		raycaster.set( o, d );
 
-		console.log( inv.geometry);
+		var intersections = raycaster.intersectObject( model, false );
+		var valid = intersections.length && intersections.length >= 2 && ( intersections.length % 2 == 0 );
+		if( valid ){
 
-		inv.material.side = THREE.DoubleSide;
-        // inv.material.side = THREE.FrontSide;
+			//dubious point
+			if( intersections[1].face.normal.dot( d ) <= -.1
+			||	intersections[0].face.normal.dot( d.negate() ) <= -.1 ){
 
-		// inv.geometry.computeFaceNormals();
-		inv.geometry.computeBoundingBox();
-		var raycaster = new THREE.Raycaster();
-
-		var bbox = inv.geometry.boundingBox;
-
-		var coords = [];
-		var dests = [];
-		var dubious = 0;
-
-		var maxDist = bbox.max.length() * .5;
-		//to perform raycast
-		var o = new THREE.Vector3();
-		var d = new THREE.Vector3();
-
-
-		for( var i = 0; i < Math.pow( 2, 14 ); i++ ){
-
-			o.x = lerp( Math.random(), bbox.min.x, bbox.max.x );
-			o.y = lerp( Math.random(), bbox.min.y, bbox.max.y );
-			o.z = lerp( Math.random(), bbox.min.z, bbox.max.z );
-
-			d.x = ( Math.random() - .5 ) * 2;// lerp( Math.random(), bbox.min.x, bbox.max.x );//
-			d.y = ( Math.random() - .5 ) * 2;// lerp( Math.random(), bbox.min.y, bbox.max.y );//
-			d.z = ( Math.random() - .5 ) * 2;// lerp( Math.random(), bbox.min.z, bbox.max.z );//
-			d.normalize();
-
-			raycaster.set( o, d );
-
-			var intersections = raycaster.intersectObject( inv, false );
-			var valid = intersections.length && intersections.length >= 2 && ( intersections.length % 2 == 0 );
-			if( valid ){
-
-				//dubious point
-				if( intersections[1].face.normal.dot( d ) < 0
-				||	intersections[0].face.normal.dot( d.negate() ) < 0
-				// ||	intersections[0].point.distanceTo(intersections[1].point) > maxDist
-				){
-
-					dubious++;
-                    i--;
-                    continue;
-
-				}
-
-				console.log( 'ok' );
-				coords.push( intersections[0].point.x, intersections[0].point.y, intersections[0].point.z );
-				dests.push( intersections[1].point.x, intersections[1].point.y, intersections[1].point.z );
-
-			}else{
+				dubious++;
 				i--;
+				continue;
+
 			}
 
-		}
-        console.log( maxDist, dubious );
+			console.log( 'ok' );
+			coords.push( intersections[0].point.x, intersections[0].point.y, intersections[0].point.z );
+			dests.push( intersections[1].point.x, intersections[1].point.y, intersections[1].point.z );
 
-
-		g.addAttribute( "position", new THREE.BufferAttribute( new Float32Array( coords ), 3 ));
-		g.addAttribute( "dest", new THREE.BufferAttribute( new Float32Array( dests ), 3 ));
-
-		coords = coords.map( function( v ){return v.toFixed( 3 ); });
-		dests = dests.map( function( v ){return v.toFixed( 3 ); });
-		var str = coords.join(',') + "|" + dests.join(',');
-		// console.clear();
-		console.log( str );
-
-	}else{
-
-		console.log( 'yop');
-		g.addAttribute( "position", new THREE.BufferAttribute( new Float32Array( particlesData.pos ), 3 ));
-		g.addAttribute( "dest", new THREE.BufferAttribute( new Float32Array( particlesData.dst ), 3 ));
-
-	}
-
-	var count = g.getAttribute("position").array.length / 3;
-	var uvOffset = [];
-	while( count-- ){
-		uvOffset.push( Math.floor( Math.random() * 4 ) / 4, Math.floor( Math.random() * 4 ) / 4 );
-	}
-	g.addAttribute( "uvOffset", new THREE.BufferAttribute( new Float32Array( uvOffset ), 2 ));
-
-	particles = new THREE.Points(g,pMat);
-	scene.add( particles );
-
-}
-
-
-function compute( points ){
-
-	var group = new THREE.Group();
-
-	console.time( 'build' )
-	for( var i = 0; i < 50; i++ ){
-
-		var nodes = points.concat();
-		var vectors  = [];
-		origin = nodes.splice( parseInt( Math.random() * nodes.length ), 1 )[0];
-		vectors.push( origin );//.x, origin.y, origin.z );
-		for( var j = 0; j < 100; j++ ){
-
-			nodes.sort( function( a, b ){
-				return a.distanceToSquared( origin ) - b.distanceToSquared( origin );
-			});
-
-			var n = nodes.splice(0,1)[0];
-			if( origin.distanceTo(n) < 25 ){
-				vectors.push( n );//.x,n.y, n.z );
-				origin = n;
-			}
-
-		}
-		if( vectors.length < 5 ){
+		}else{
 			i--;
-			break;
 		}
 
-
-		var depth = new THREE.Vector2( 0, 10);
-		var material = new MeshLineMaterial( {
-			useMap: false,
-			color: new THREE.Color( 0xFFFFFF ),// colors[ parseInt( Math.random() * colors.length ) ] ),//0xFFFFFF ),//
-			opacity: 1,
-			resolution: resolution,
-			sizeAttenuation: true,
-			lineWidth: 1,// + ( ( Math.random() > .35 ? 1 : 0 )*~~(Math.random() * 5 ) ),
-			depth: depth,
-			near: camera.near,
-			far: camera.far,
-			depthWrite: true,
-			depthTest: 	true,
-			transparent: true
-		},
-		shaders.meshline_vs,
-		shaders.meshline_fs);
-
-
-		// var spl = new THREE.CatmullRomCurve3( vectors );
-		// var res = spl.getPoints( vectors.length * 5 );
-		var res = Cardinal.compute( vectors, .1, .1 );
-		var path = [];
-		res.forEach(function( p ){
-			path.push( p.x, p.y, p.z )
-		});
-
-		var l = new MeshLine();
-		//linear
-		l.setGeometry( path, function( p ) { return 1; } );
-
-		//parabola
-		// l.setGeometry( path, function( p ) { return parabola( p, 1 ); } );
-
-		var line = new THREE.Mesh( l.geometry, material );
-		line.startTime = Math.random() * 3 * 1000;
-		line.lineLength = .25;// + Math.random() * .5;
-		line.speed = .00001 + Math.random() * .0001;
-		lines.push( line );
-		group.add( line );
-
 	}
-	console.timeEnd( 'build' )
 
-	scene.add( group );
+	assetsLoader.particles = {
+		pos:coords,
+		dst:dests
+	};
+
+	// g.addAttribute( "position", new THREE.BufferAttribute( new Float32Array( coords ), 3 ));
+	// g.addAttribute( "dest", new THREE.BufferAttribute( new Float32Array( dests ), 3 ));
 
 }
 
+function particlesToString(){
+
+	coords = coords.map( function( v ){return v.toFixed( 3 ); });
+	dests = dests.map( function( v ){return v.toFixed( 3 ); });
+
+	var str = coords.join(',') + "|" + dests.join(',');
+	// console.clear();
+	console.log( str );
+}
 
 onWindowResize();
 
@@ -392,21 +342,31 @@ function render() {
 	requestAnimationFrame( render );
 	controls.update();
 	var time = ( Date.now() - startTime ) * 0.001;
-	if( text !== undefined ){
-		// ske.material.uniforms.time.value = time;
-		// inv.material.uniforms.time.value = time;
-		// inv.material.uniforms.alpha.value = .55;//.35;//.1 + .25 * ( Math.sin( time ) * .5 + .5 );
-		particles.material.uniforms.time.value = time;
+
+	for( var k in materials ){
+
+		if( materials[ k ].uniforms.time !== undefined ){
+
+			// materials[ k ].uniforms.time.value = time;
+
+		}
 	}
 
-	lines.forEach( function(l){
-
-		var t = Math.sin( ( Date.now() - l.startTime ) * l.speed ) * 2;
-		l.material.uniforms.visibility.value.x = t - l.lineLength;//Math.max( 0, t - l.lineLength );
-		l.material.uniforms.visibility.value.y = t;
-		// l.material.uniforms.time.value = time;
-
-	});
+	// if( text !== undefined ){
+	// 	// ske.material.uniforms.time.value = time;
+	// 	// inv.material.uniforms.time.value = time;
+	// 	// inv.material.uniforms.alpha.value = .55;//.35;//.1 + .25 * ( Math.sin( time ) * .5 + .5 );
+	// 	particles.material.uniforms.time.value = time;
+	// }
+    //
+	// lines.forEach( function(l){
+    //
+	// 	var t = Math.sin( ( Date.now() - l.startTime ) * l.speed ) * 2;
+	// 	l.material.uniforms.visibility.value.x = t - l.lineLength;//Math.max( 0, t - l.lineLength );
+	// 	l.material.uniforms.visibility.value.y = t;
+	// 	// l.material.uniforms.time.value = time;
+    //
+	// });
 	renderer.render( scene, camera );
 
 }

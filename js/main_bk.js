@@ -10,18 +10,22 @@ renderer.setPixelRatio( window.devicePixelRatio );
 document.body.appendChild( renderer.domElement );
 
 
+
+var resolution = new THREE.Vector2( window.innerWidth, window.innerHeight );
+
+
 var controls = new THREE.OrbitControls( camera, renderer.domElement );
 camera.position.z = 30;
 
+var materials = {};
 
 
-var lines = [], matCap, ske, startTime;
+var lines = [], matCap, text, startTime;
 var particles;
 var particlesTex;
 var invTex;
 var inv;
 var origin;
-var div = document.getElementById("waiter");
 
 // var colors = [0xed6a5a, 0xf4f1bb, 0x9bc1bc, 0x5ca4a9, 0xe6ebe0, 0xf0b67f, 0xfe5f55, 0xd6d1b1, 0xc7efcf, 0xeef5db, 0x50514f, 0xf25f5c, 0xffe066, 0x247ba0, 0x70c1b3 ];
 // colors = [0x556270, 0x4ECDC4, 0xC7F464, 0xFF6B6B, 0xC44D58 ];
@@ -30,10 +34,6 @@ var div = document.getElementById("waiter");
 var colors = "264653-2a9d8f-e9c46a-f4a261-e76f51".split('-').map( function( v ){ return parseInt( "0x" + v ); } );
 // colors = colors.concat( "f2f3ae-edd382-e7a977-e87461-b38cb4".split('-').map( function( v ){ return parseInt( "0x" + v ); } ) );
 colors = colors.concat( "114b5f-456990-028090-79b473-70a37f".split('-').map( function( v ){ return parseInt( "0x" + v ); } ) );
-
-
-var resolution = new THREE.Vector2( window.innerWidth, window.innerHeight );
-
 
 function lerp ( t, a, b ){ return a * (1-t) + b * t; }
 function norm( t, a, b ){return ( t - a ) / ( b - a );}
@@ -71,24 +71,130 @@ var PathLoader = function(){
 
 window.onload = function(){
 	var queue = [
-		{name: "meshline_vs", url: "./glsl/meshline_vs.glsl"},
-		{name: "meshline_fs", url: "./glsl/meshline_fs.glsl"},
-		{name: "particles_vs", url: "./glsl/particles_vs.glsl"},
-		{name: "particles_fs", url: "./glsl/particles_fs.glsl"},
-		{name: "sem_vs", url: "./glsl/sem_vs.glsl"},
-		{name: "sem_fs", url: "./glsl/sem_fs.glsl"},
-        {name: "env_vs", url: "./glsl/env_vs.glsl"},
-        {name: "env_fs", url: "./glsl/env_fs.glsl"}
+
+		{name: "meshline_vs", 	url: "./glsl/meshline_vs.glsl",		type:assetsLoader.TXT	},
+		{name: "meshline_fs", 	url: "./glsl/meshline_fs.glsl",		type:assetsLoader.TXT	},
+		{name: "particles_vs",	url: "./glsl/particles_vs.glsl",	type:assetsLoader.TXT	},
+		{name: "particles_fs",	url: "./glsl/particles_fs.glsl",	type:assetsLoader.TXT	},
+		{name: "sem_vs", 		url: "./glsl/sem_vs.glsl",			type:assetsLoader.TXT	},
+		{name: "sem_fs", 		url: "./glsl/sem_fs.glsl",			type:assetsLoader.TXT	},
+        {name: "env_vs", 		url: "./glsl/env_vs.glsl",			type:assetsLoader.TXT	},
+        {name: "env_fs", 		url: "./glsl/env_fs.glsl",			type:assetsLoader.TXT	},
+        {name: "env_fs", 		url: "./glsl/env_fs.glsl",			type:assetsLoader.TXT	},
+
+        {
+        	name: "particles",
+			url:"particles_8k.txt",			type:assetsLoader.TXT,
+			onLoad:function (txt) {
+				var res = txt.split( '|' );
+				var obj = {};
+				obj.pos = res[0].split(',').map( function( v ){return parseFloat( v ); } );
+				obj.dst = res[1].split(',').map( function( v ){return parseFloat( v ); } );
+				assetsLoader.particles = obj;
+			}
+        },
+
+		{
+			name: "silver",
+			url: "../assets/textures/matcap/test_steel.jpg",type:assetsLoader.IMG
+		},
+		{
+			name: "blue",
+			url: "../assets/textures/matcap/JG_Drink01.png",type:assetsLoader.IMG
+		},
+
+		{
+			name: "skeleton",
+			url: "../assets/models/skeleton.js",type:assetsLoader.MOD
+		},
+		{
+			name: "invert",
+			url: "../assets/models/invert.js",type:assetsLoader.MOD
+		}
+
+
+
+
 	];
 
 	assetsLoader.load(queue, init);
 }
+function createMaterials(){
+
+	startTime = Date.now();
+	gold = new THREE.ShaderMaterial({
+		uniforms:{
+			tMatCap : {type:"t", value:assetsLoader.silver },
+			time:{type:"f", value:0 },
+			alpha:{type:"f", value:0 }
+		},
+		vertexShader:assetsLoader.sem_vs,
+		fragmentShader:assetsLoader.sem_fs
+	});
+
+	var source = assetsLoader.skeleton;
+	source.computeVertexNormals();
+	text = new THREE.Mesh( source, assetsLoader.blue );
+	scene.add( text );
+
+	var mat = new THREE.ShaderMaterial({
+		uniforms:{
+			tMatCap : {type:"t", value:invTex },
+			time:{type:"f", value:0 },
+			alpha:{type:"f", value:0.45 }
+		},
+		vertexShader:assetsLoader.sem_vs,
+		fragmentShader:assetsLoader.sem_fs,
+		transparent: true,
+		side:THREE.DoubleSide,
+		depthWrite:false
+	});
+
+	var invert = assetsLoader.skeleton;
+	invert.computeVertexNormals();
+	inv = new THREE.Mesh( invert, mat );
+	scene.add( inv );
+
+	var pMat = new THREE.ShaderMaterial({
+		uniforms : {
+			texture:{type:"t", value:particlesTex},
+			time:{type:"f", value:0},
+			modBig:{type:"f", value:25},
+			pointSize:{type:"f", value:4},
+			alpha:{type:"f", value:1}
+		},
+		vertexShader:	assetsLoader.particles_vs,
+		fragmentShader:	assetsLoader.particles_fs,
+		transparent:	true,
+		// depthTest:	false
+	});
+
+
+	var envMat = new THREE.ShaderMaterial({
+		uniforms : {
+			horizon:{type:"f", value: .45 },
+			spread:{type:"f", value: .05 },
+			topColor:{type:"v3", value:new THREE.Color( 0x505050 )},
+			bottomColor:{type:"v3", value:new THREE.Color( 0x101010 )}
+		},
+		vertexShader:	assetsLoader.env_vs,
+		fragmentShader:	assetsLoader.env_fs,
+		side:THREE.BackSide
+	});
+	var m = new THREE.Mesh( new THREE.CylinderBufferGeometry( .5,.5, 1, 64 ), envMat );
+	m.scale.multiplyScalar( 1000 );
+	scene.add( m );
+}
 
 function init() {
 
-	render();
-	readModel();
+	// readModel();
 
+	createMaterials();
+
+ 	collectPoints();//assetsLoader.skeleton, assetsLoader.invert, assetsLoader.particles );
+	console.log( assetsLoader )
+	render();
 }
 
 
@@ -106,18 +212,20 @@ function readModel( cb ) {
 			loader.load( '../assets/models/skeleton.js', function( res ) {
 
 				var tl = new THREE.TextureLoader();
-				tl.load( "../assets/textures/matcap/chrome_dark.png", function(tex){
+				// tl.load( "../assets/textures/matcap/chrome_dark.png", function(tex){
+				tl.load( "../assets/textures/matcap/test_steel.jpg", function(tex) {
 					matCap = tex;
 
 					loader.load( '../assets/models/invert.js', function( inv ) {
 
 						// tl.load( "../assets/textures/matcap/generator8.jpg", function(tex) {
 						tl.load( "../assets/textures/matcap/JG_Drink01.png", function(tex) {
+						// tl.load( "../assets/textures/matcap/gold.png", function(tex) {
 							invTex = tex;
 
 							tl.load( "../assets/textures/particles.png", function(tex) {
 								particlesTex = tex;
-								collectPoints(res, inv, obj);//);//
+								collectPoints(res, inv);//, obj);//
 							});
 						} );
 					} );
@@ -129,71 +237,9 @@ function readModel( cb ) {
 
 }
 
-function collectPoints( source, invert, particlesData ) {
-
-	console.log( source )
-
-	startTime = Date.now();
-	var gold = new THREE.ShaderMaterial({
-		uniforms:{
-			tMatCap : {type:"t", value:matCap },
-			time:{type:"f", value:0 },
-			alpha:{type:"f", value:0 }
-		},
-		vertexShader:assetsLoader.sem_vs,
-		fragmentShader:assetsLoader.sem_fs
-	});
-
-	source.computeVertexNormals();
-	ske = new THREE.Mesh( source, gold );
-	scene.add( ske );
-
-	var mat = new THREE.ShaderMaterial({
-		uniforms:{
-			tMatCap : {type:"t", value:invTex },
-			time:{type:"f", value:0 },
-			alpha:{type:"f", value:0. }
-		},
-		vertexShader:assetsLoader.sem_vs,
-		fragmentShader:assetsLoader.sem_fs,
-		transparent: true,
-		side:THREE.DoubleSide,
-		depthWrite:false
-	});
-
-	invert.computeVertexNormals();
-	inv = new THREE.Mesh( invert, mat );
-    // scene.add( inv );
-
-	var pMat = new THREE.ShaderMaterial({
-		uniforms : {
-			texture:{type:"t", value:particlesTex},
-			time:{type:"f", value:0},
-			modBig:{type:"f", value:25},
-			pointSize:{type:"f", value:4},
-			alpha:{type:"f", value:1}
-		},
-		vertexShader:	assetsLoader.particles_vs,
-		fragmentShader:	assetsLoader.particles_fs,
-		transparent:	true,
-		// depthTest:	false
-	});
+function collectPoints( particlesData ) {
 
 
-    var envMat = new THREE.ShaderMaterial({
-        uniforms : {
-            horizon:{type:"f", value: .45 },
-            spread:{type:"f", value: .05 },
-            topColor:{type:"v3", value:new THREE.Color( 0x505050 )},
-            bottomColor:{type:"v3", value:new THREE.Color( 0x101010 )}
-        },
-        vertexShader:	assetsLoader.env_vs,
-        fragmentShader:	assetsLoader.env_fs,
-		side:THREE.BackSide
-    });
-	var m = new THREE.Mesh( new THREE.CylinderBufferGeometry( .5,.5, 1, 64 ), envMat );
-	m.scale.multiplyScalar( 1000 );
-    scene.add( m );
 
 
 
@@ -221,7 +267,7 @@ function collectPoints( source, invert, particlesData ) {
 		var d = new THREE.Vector3();
 
 
-		for( var i = 0; i < Math.pow( 2, 13 ); i++ ){
+		for( var i = 0; i < Math.pow( 2, 14 ); i++ ){
 
 			o.x = lerp( Math.random(), bbox.min.x, bbox.max.x );
 			o.y = lerp( Math.random(), bbox.min.y, bbox.max.y );
@@ -240,6 +286,7 @@ function collectPoints( source, invert, particlesData ) {
 
 				//dubious point
 				if( intersections[1].face.normal.dot( d ) < 0
+				||	intersections[0].face.normal.dot( d.negate() ) < 0
 				// ||	intersections[0].point.distanceTo(intersections[1].point) > maxDist
 				){
 
@@ -270,8 +317,6 @@ function collectPoints( source, invert, particlesData ) {
 		// console.clear();
 		console.log( str );
 
-        particlesData = {pos : coords,dst : dests };
-
 	}else{
 
 		console.log( 'yop');
@@ -287,20 +332,9 @@ function collectPoints( source, invert, particlesData ) {
 	}
 	g.addAttribute( "uvOffset", new THREE.BufferAttribute( new Float32Array( uvOffset ), 2 ));
 
-	// particles = new THREE.Points(g,pMat);
-	// scene.add( particles );
+	particles = new THREE.Points(g,pMat);
+	scene.add( particles );
 
-    var vectors = [];
-    for( i = 0; i < particlesData.pos.length; i+= 3 ){
-
-        var p = new THREE.Vector3();
-        p.x = lerp( Math.random(), particlesData.pos[i], particlesData.dst[i] );
-        p.y = lerp( Math.random(), particlesData.pos[i+1], particlesData.dst[i+1] );
-        p.z = lerp( Math.random(), particlesData.pos[i+2], particlesData.dst[i+2] );
-        vectors.push( p );
-    }
-
-    compute(vectors);
 }
 
 
@@ -309,9 +343,9 @@ function compute( points ){
 	var group = new THREE.Group();
 
 	console.time( 'build' )
-	var nodes = points.concat();
-	for( var i = 0; i < 20; i++ ){
+	for( var i = 0; i < 50; i++ ){
 
+		var nodes = points.concat();
 		var vectors  = [];
 		origin = nodes.splice( parseInt( Math.random() * nodes.length ), 1 )[0];
 		vectors.push( origin );//.x, origin.y, origin.z );
@@ -321,11 +355,11 @@ function compute( points ){
 				return a.distanceToSquared( origin ) - b.distanceToSquared( origin );
 			});
 
-			var n = nodes.splice(parseInt( Math.random() * 100 ),1)[0];
-			// if( origin.distanceTo(n) < 25 ){
+			var n = nodes.splice(0,1)[0];
+			if( origin.distanceTo(n) < 25 ){
 				vectors.push( n );//.x,n.y, n.z );
 				origin = n;
-			// }
+			}
 
 		}
 		if( vectors.length < 5 ){
@@ -337,27 +371,25 @@ function compute( points ){
 		var depth = new THREE.Vector2( 0, 10);
 		var material = new MeshLineMaterial( {
 			useMap: false,
-			color: new THREE.Color( colors[ parseInt( Math.random() * colors.length ) ] ),//0xFFFFFF ),//
+			color: new THREE.Color( 0xFFFFFF ),// colors[ parseInt( Math.random() * colors.length ) ] ),//0xFFFFFF ),//
 			opacity: 1,
 			resolution: resolution,
 			sizeAttenuation: true,
-			lineWidth: .05,//3 + ( ( Math.random() > .35 ? 1 : 0 )*~~(Math.random() * 5 ) ),
+			lineWidth: 1,// + ( ( Math.random() > .35 ? 1 : 0 )*~~(Math.random() * 5 ) ),
 			depth: depth,
 			near: camera.near,
 			far: camera.far,
-			// depthWrite: true,
-			// depthTest: 	true,
-			// transparent: true
+			depthWrite: true,
+			depthTest: 	true,
+			transparent: true
 		},
-
 		assetsLoader.meshline_vs,
-		assetsLoader.meshline_fs
-		);
+		assetsLoader.meshline_fs);
 
 
-		var spl = new THREE.CatmullRomCurve3( vectors );
-		var res = spl.getPoints( vectors.length * 5 );
-		// var res = Cardinal.compute( vectors, .1, .5 );
+		// var spl = new THREE.CatmullRomCurve3( vectors );
+		// var res = spl.getPoints( vectors.length * 5 );
+		var res = Cardinal.compute( vectors, .1, .1 );
 		var path = [];
 		res.forEach(function( p ){
 			path.push( p.x, p.y, p.z )
@@ -405,11 +437,11 @@ function render() {
 	requestAnimationFrame( render );
 	controls.update();
 	var time = ( Date.now() - startTime ) * 0.001;
-	if( ske !== undefined ){
+	if( text !== undefined ){
 		// ske.material.uniforms.time.value = time;
 		// inv.material.uniforms.time.value = time;
 		// inv.material.uniforms.alpha.value = .55;//.35;//.1 + .25 * ( Math.sin( time ) * .5 + .5 );
-		// particles.material.uniforms.time.value = time;
+		particles.material.uniforms.time.value = time;
 	}
 
 	lines.forEach( function(l){
