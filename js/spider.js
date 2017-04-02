@@ -35,7 +35,7 @@ window.onload = function(){
 				assetsLoader.particles = obj;
 			}
 		}
-
+//*/
 	];
 
 	assetsLoader.load(queue, init);
@@ -69,19 +69,18 @@ function createMaterials(){
 		vertexShader:assetsLoader.sem_vs,
 		fragmentShader:assetsLoader.sem_fs,
 		transparent: true,
-		// side:THREE.DoubleSide,
+		side:THREE.DoubleSide,
 		depthWrite:false,
 		// wireframe:true
-		// blending:THREE.SubtractiveBlending
 	});
 
 	materials.particles = new THREE.ShaderMaterial({
 		uniforms : {
-			color:{type:"v3", value:new THREE.Color( 0xFFFFFF )},
+			color:{type:"v3", value:new THREE.Color( 0xCCCCCC )},
 			bounds:{type:"v2", value:new THREE.Vector2( .25, .5 )},//start / length
 			time:{type:"f", value:0},
 			modBig:{type:"f", value:100},
-			pointSize:{type:"f", value:4},
+			pointSize:{type:"f", value:2},
 			alpha:{type:"f", value:1}
 		},
 		vertexShader:	assetsLoader.particles_vs,

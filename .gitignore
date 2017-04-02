@@ -1,5 +1,2 @@
-assets/source
-*.max;
 #ignore thumbnails created by windows
 Thumbs.db
-/sreenshots/
