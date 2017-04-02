@@ -20,7 +20,7 @@ camera.position.z = 30;
 var materials = {};
 
 
-var lines = [], matCap, text, startTime;
+var lines = [], matCap, skeleton, startTime;
 var particles;
 var particlesTex;
 var invTex;
@@ -134,8 +134,8 @@ function createMaterials(){
 
 	var source = assetsLoader.skeleton;
 	source.computeVertexNormals();
-	text = new THREE.Mesh( source, assetsLoader.blue );
-	scene.add( text );
+	skeleton = new THREE.Mesh( source, assetsLoader.blue );
+	scene.add( skeleton );
 
 	var mat = new THREE.ShaderMaterial({
 		uniforms:{
@@ -152,8 +152,8 @@ function createMaterials(){
 
 	var invert = assetsLoader.skeleton;
 	invert.computeVertexNormals();
-	inv = new THREE.Mesh( invert, mat );
-	scene.add( inv );
+	invertSkeleton = new THREE.Mesh( invert, mat );
+	scene.add( invertSkeleton );
 
 	var pMat = new THREE.ShaderMaterial({
 		uniforms : {
@@ -225,7 +225,7 @@ function readModel( cb ) {
 
 							tl.load( "../assets/textures/particles.png", function(tex) {
 								particlesTex = tex;
-								collectPoints(res, inv);//, obj);//
+								collectPoints(res, invertSkeleton);//, obj);//
 							});
 						} );
 					} );
@@ -246,16 +246,16 @@ function collectPoints( particlesData ) {
 	var g = new THREE.BufferGeometry();
 	if( particlesData === undefined ){
 
-		console.log( inv.geometry);
+		console.log( invertSkeleton.geometry);
 
-		inv.material.side = THREE.DoubleSide;
+		invertSkeleton.material.side = THREE.DoubleSide;
         // inv.material.side = THREE.FrontSide;
 
 		// inv.geometry.computeFaceNormals();
-		inv.geometry.computeBoundingBox();
+		invertSkeleton.geometry.computeBoundingBox();
 		var raycaster = new THREE.Raycaster();
 
-		var bbox = inv.geometry.boundingBox;
+		var bbox = invertSkeleton.geometry.boundingBox;
 
 		var coords = [];
 		var dests = [];
@@ -280,7 +280,7 @@ function collectPoints( particlesData ) {
 
 			raycaster.set( o, d );
 
-			var intersections = raycaster.intersectObject( inv, false );
+			var intersections = raycaster.intersectObject( invertSkeleton, false );
 			var valid = intersections.length && intersections.length >= 2 && ( intersections.length % 2 == 0 );
 			if( valid ){
 
@@ -437,7 +437,7 @@ function render() {
 	requestAnimationFrame( render );
 	controls.update();
 	var time = ( Date.now() - startTime ) * 0.001;
-	if( text !== undefined ){
+	if( skeleton !== undefined ){
 		// ske.material.uniforms.time.value = time;
 		// inv.material.uniforms.time.value = time;
 		// inv.material.uniforms.alpha.value = .55;//.35;//.1 + .25 * ( Math.sin( time ) * .5 + .5 );

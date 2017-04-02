@@ -68,15 +68,12 @@ varying vec3 n;
 
 void main() {
 
-//    vec3 t = vec3( sin(time * .1 ), cos( time * .1 ), time * .1 );
-//    vec3 pos = position;// + SimplexPerlin3D( position * .1 + t * 10. ) * .25;
+//    vec3 t = vec3( 0, cos( time * .1 ), time * .1 );
+    vec3 pos = position;// + SimplexPerlin3D( position * 0.01 + t * 5. ) * .5;
 
-    vec3 t = vec3( 0, cos( time * .1 ), time * .1 );
-    vec3 pos = position + SimplexPerlin3D( position * 0.01 + t * 5. ) * .5;
+    e = normalize( vec3( modelViewMatrix * vec4( pos, 1.0 ) ) );
+    n = normalize( normalMatrix * normal );
 
-  e = normalize( vec3( modelViewMatrix * vec4( pos, 1.0 ) ) );
-  n = normalize( normalMatrix * normal );
-
-  gl_Position = projectionMatrix * modelViewMatrix * vec4( pos, 1. );
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( pos, 1. );
 
 }

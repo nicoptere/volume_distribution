@@ -93,7 +93,7 @@ void main() {
 
 
 
-    a = smoothstep( -1.,1., noise( vec2( position.y + time * 2. , time * .5 ) * .1 ) );
+    a = smoothstep( -1.,1., noise( vec2( position.x * position.y + time * 2. , time * .5 ) * .1 ) );
     vec3 pos = mix( position, dest, a );
 
     vAlpha = max( .25, a );

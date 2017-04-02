@@ -117,7 +117,7 @@ function readModel( cb ) {
 
 							tl.load( "../assets/textures/particles.png", function(tex) {
 								particlesTex = tex;
-								collectPoints(res, inv, obj);//);//
+								collectPoints(res, invertSkeleton, obj);//);//
 							});
 						} );
 					} );
@@ -162,7 +162,7 @@ function collectPoints( source, invert, particlesData ) {
 	});
 
 	invert.computeVertexNormals();
-	inv = new THREE.Mesh( invert, mat );
+	invertSkeleton = new THREE.Mesh( invert, mat );
     // scene.add( inv );
 
 	var pMat = new THREE.ShaderMaterial({
@@ -200,16 +200,16 @@ function collectPoints( source, invert, particlesData ) {
 	var g = new THREE.BufferGeometry();
 	if( particlesData === undefined ){
 
-		console.log( inv.geometry);
+		console.log( invertSkeleton.geometry);
 
-		inv.material.side = THREE.DoubleSide;
+		invertSkeleton.material.side = THREE.DoubleSide;
         // inv.material.side = THREE.FrontSide;
 
 		// inv.geometry.computeFaceNormals();
-		inv.geometry.computeBoundingBox();
+		invertSkeleton.geometry.computeBoundingBox();
 		var raycaster = new THREE.Raycaster();
 
-		var bbox = inv.geometry.boundingBox;
+		var bbox = invertSkeleton.geometry.boundingBox;
 
 		var coords = [];
 		var dests = [];
@@ -234,7 +234,7 @@ function collectPoints( source, invert, particlesData ) {
 
 			raycaster.set( o, d );
 
-			var intersections = raycaster.intersectObject( inv, false );
+			var intersections = raycaster.intersectObject( invertSkeleton, false );
 			var valid = intersections.length && intersections.length >= 2 && ( intersections.length % 2 == 0 );
 			if( valid ){
 
