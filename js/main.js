@@ -108,19 +108,6 @@ function createMaterials(){
 
 }
 
-function init() {
-
-	init3D();
-	camera.position.z = 30;
-
-	createMaterials();
-	createMeshes();
-
-	createParticles();
-	render();
-
-}
-
 function createMeshes() {
 
 	skeleton = new THREE.Mesh(assetsLoader.skeleton, materials.silver);
@@ -134,6 +121,21 @@ function createMeshes() {
 	scene.add(env);
 
 }
+
+function init() {
+
+	init3D();
+	camera.position.z = 30;
+
+	createMaterials();
+
+	createMeshes();
+
+	createParticles();
+	render();
+
+}
+
 
 function createParticles(){
 
