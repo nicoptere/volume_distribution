@@ -103,7 +103,7 @@ function readModel( cb ) {
 			obj.dst = res[1].split(',').map( function( v ){return parseFloat( v ); } );
 
 			var loader = new THREE.BinaryLoader();
-			loader.load( '../assets/models/skeleton.js', function( res ) {
+			loader.load( '../assets/models/suzanne.js', function( res ) {
 
 				var tl = new THREE.TextureLoader();
 				tl.load( "../assets/textures/matcap/chrome_dark.png", function(tex){

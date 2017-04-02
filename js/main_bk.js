@@ -105,7 +105,7 @@ window.onload = function(){
 
 		{
 			name: "skeleton",
-			url: "../assets/models/skeleton.js",type:assetsLoader.MOD
+			url: "../assets/models/suzanne.js",type:assetsLoader.MOD
 		},
 		{
 			name: "invert",
@@ -209,7 +209,7 @@ function readModel( cb ) {
 			obj.dst = res[1].split(',').map( function( v ){return parseFloat( v ); } );
 
 			var loader = new THREE.BinaryLoader();
-			loader.load( '../assets/models/skeleton.js', function( res ) {
+			loader.load( '../assets/models/suzanne.js', function( res ) {
 
 				var tl = new THREE.TextureLoader();
 				// tl.load( "../assets/textures/matcap/chrome_dark.png", function(tex){

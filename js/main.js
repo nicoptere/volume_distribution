@@ -29,23 +29,23 @@ window.onload = function(){
 
 		{
 			name: "skeleton",
-			url: "../assets/models/skeleton.js",type:assetsLoader.MOD
+			url: "../assets/models/suzanne.js",type:assetsLoader.MOD
 		},
 		{
 			name: "invert",
 			url: "../assets/models/invert.js",type:assetsLoader.MOD
 		},
 
-		/*
+		// /*
 		 {
 		 name: "particles",
-		 url:"particles_4k.txt",			type:assetsLoader.TXT,
+		 url:"particles_65536_1.txt",			type:assetsLoader.TXT,
 		 onLoad:function (txt) {
-		 var res = txt.split( '|' );
-		 var obj = {};
-		 obj.pos = res[0].split(',').map( function( v ){return parseFloat( v ); } );
-		 obj.dst = res[1].split(',').map( function( v ){return parseFloat( v ); } );
-		 assetsLoader.particles = obj;
+			 var res = txt.split( '|' );
+			 var obj = {};
+			 obj.pos = res[0].split(',').map( function( v ){return parseFloat( v ); } );
+			 obj.dst = res[1].split(',').map( function( v ){return parseFloat( v ); } );
+			 assetsLoader.particles = obj;
 		 }
 		 },//*/
 
@@ -115,26 +115,31 @@ function init() {
 
 	createMaterials();
 	createMeshes();
+
+	createParticles();
 	render();
 
 }
 
-function createMeshes(){
+function createMeshes() {
 
+	skeleton = new THREE.Mesh(assetsLoader.skeleton, materials.silver);
+	scene.add(skeleton);
 
-	skeleton = new THREE.Mesh( assetsLoader.skeleton, materials.silver );
-	scene.add( skeleton );
+	invertSkeleton = new THREE.Mesh(assetsLoader.invert, materials.blue);
+	scene.add(invertSkeleton);
 
-	invertSkeleton = new THREE.Mesh( assetsLoader.invert, materials.blue );
-	scene.add( invertSkeleton );
+	var env = new THREE.Mesh(new THREE.CylinderBufferGeometry(.5, .5, 1, 64), materials.environment);
+	env.scale.multiplyScalar(1000);
+	scene.add(env);
 
-	var m = new THREE.Mesh( new THREE.CylinderBufferGeometry( .5,.5, 1, 64 ), materials.environment );
-	m.scale.multiplyScalar( 1000 );
-	scene.add( m );
+}
+
+function createParticles(){
 
 	if( assetsLoader.particles === undefined ){
 
-		var count = Math.pow( 2, 10 );
+		var count = Math.pow( 2, 16 );
 		var model = invertSkeleton;
 
 		distribute( count, model );
@@ -157,7 +162,7 @@ function createMeshes(){
 
 }
 
-function distribute( count, model, inside ) {
+function distribute( count, model ) {
 
 	//this will store the results
 	var coords = [];
@@ -205,16 +210,15 @@ function distribute( count, model, inside ) {
 		var valid = intersections.length && intersections.length >= 2 && ( intersections.length % 2 == 0 );
 		if( valid ){
 
-			//dubious point
-			//make sure that the: origin - direction vector
-			// have the right directions
+			// make sure that the: origin - direction vector have the same
+			// direction as the normal of the faces they hit )
 
-			var dp0 = d.dot( intersections[1].face.normal );
+			var dp0 = d.dot( intersections[1].face.normal ) <= -.1;
 
 			d.negate();
-			var dp1 = d.dot( intersections[0].face.normal );
+			var dp1 = d.dot( intersections[0].face.normal ) <= -.1;
 
-			if( dp0 <= -.1 || dp1 <= -.1 ){
+			if( dp0 || dp1 ){
 				i--;
 				continue;
 			}
@@ -234,28 +238,33 @@ function distribute( count, model, inside ) {
 		dst:dests
 	};
 
-	// g.addAttribute( "position", new THREE.BufferAttribute( new Float32Array( coords ), 3 ));
-	// g.addAttribute( "dest", new THREE.BufferAttribute( new Float32Array( dests ), 3 ));
-
 }
 
-function particlesToString(){
+function particlesToString( decimalPrecision ){
 
-	var coords = assetsLoader.particles.pos.map( function( v ){return v.toFixed( 3 ); });
-	var dests = assetsLoader.particles.dst.map( function( v ){return v.toFixed( 3 ); });
 
-	// var str = coords.join(',') + "|" + dests.join(',');
-	// console.clear();
-	// console.log( str );
+	var precision = decimalPrecision;
+	if( precision === undefined )precision = 3;
+	var coords = assetsLoader.particles.pos.map( function( v ){return v.toFixed( precision ); });
+	var dests = assetsLoader.particles.dst.map( function( v ){return v.toFixed( precision ); });
 
 	var count = ( coords.length / 3 );
 	var label = "particles_"+ count +".txt";
-	var data = 'data:application/octet-stream,'+ coords.join(',') + "|" + dests.join(',') ;
+	var data = coords.join(',') + "|" + dests.join(',') ;
+
+	var txtData = new Blob([data], { type: 'text/csv' });
+	var txtUrl = window.URL.createObjectURL(txtData);
 
 	var a = document.createElement( "a" );
-	a.setAttribute( "href", data );
+	a.setAttribute( "href", txtUrl );
 	a.setAttribute( "download", label );
 	a.innerHTML = label;
+
+	a.style.position = "absolute";
+	a.style.padding = "10px";
+	a.style.top = "0";
+	a.style.left = "0";
+	a.style.backgroundColor = "#FFF";
 
 	document.body.appendChild( a );
 

@@ -18,6 +18,6 @@
 	"DbgName" : "default"
 	}],
 
-    "buffers": "skeleton.bin"
+    "buffers": "suzanne.bin"
 
 }
