@@ -5,8 +5,8 @@ window.onload = function(){
 
 	var queue = [
 
-		{name: "particles_vs",	url: "./glsl/particles_vs.glsl",	type:assetsLoader.TXT	},
-		{name: "particles_fs",	url: "./glsl/particles_fs.glsl",	type:assetsLoader.TXT	},
+		{name: "particles_vs",	url: "./glsl/texture_particles_vs.glsl",	type:assetsLoader.TXT	},
+		{name: "particles_fs",	url: "./glsl/texture_particles_fs.glsl",	type:assetsLoader.TXT	},
 		{name: "sem_vs", 		url: "./glsl/sem_vs.glsl",			type:assetsLoader.TXT	},
 		{name: "sem_fs", 		url: "./glsl/sem_fs.glsl",			type:assetsLoader.TXT	},
         {name: "env_vs", 		url: "./glsl/env_vs.glsl",			type:assetsLoader.TXT	},

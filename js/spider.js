@@ -12,8 +12,8 @@ window.onload = function(){
         {name: "env_fs", 		url: "./glsl/env_fs.glsl",			type:assetsLoader.TXT	},
 
 		{
-			name: "green",
-			url: "./assets/textures/matcap/generator8.jpg",type:assetsLoader.IMG
+			name: "spiderTexture",
+			url: "./assets/textures/matcap/chrome_eye.png",type:assetsLoader.IMG
 		},
 		{
 			name: "particlesTexture",
@@ -34,7 +34,7 @@ window.onload = function(){
 				obj.dst = res[1].split(',').map( function( v ){return parseFloat( v ); } );
 				assetsLoader.particles = obj;
 			}
-		}//*/
+		}
 
 	];
 
@@ -50,9 +50,7 @@ function init() {
 	camera.position.z = 275;
 
     createMaterials();
-
     createMeshes();
-
     createParticles();
     render();
 
@@ -62,24 +60,27 @@ function createMaterials(){
 
 	startTime = Date.now();
 
-	materials.greeen = new THREE.ShaderMaterial({
+	materials.spiderTexture = new THREE.ShaderMaterial({
 		uniforms:{
-			tMatCap : {type:"t", value:assetsLoader.greeen },
+			tMatCap : {type:"t", value:assetsLoader.spiderTexture },
 			time:{type:"f", value:0 },
-			alpha:{type:"f", value:0.45 }
+			alpha:{type:"f", value:0.75 }
 		},
 		vertexShader:assetsLoader.sem_vs,
 		fragmentShader:assetsLoader.sem_fs,
 		transparent: true,
-		side:THREE.DoubleSide,
-		depthWrite:false
+		// side:THREE.DoubleSide,
+		depthWrite:false,
+		// wireframe:true
+		// blending:THREE.SubtractiveBlending
 	});
 
 	materials.particles = new THREE.ShaderMaterial({
 		uniforms : {
-			texture:{type:"t", value:assetsLoader.particlesTexture},
+			color:{type:"v3", value:new THREE.Color( 0xFFFFFF )},
+			bounds:{type:"v2", value:new THREE.Vector2( .25, .5 )},//start / length
 			time:{type:"f", value:0},
-			modBig:{type:"f", value:25},
+			modBig:{type:"f", value:100},
 			pointSize:{type:"f", value:4},
 			alpha:{type:"f", value:1}
 		},
@@ -90,9 +91,9 @@ function createMaterials(){
 
 	materials.environment = new THREE.ShaderMaterial({
 		uniforms : {
-			horizon:{type:"f", value: .45 },
-			spread:{type:"f", value: .05 },
-			topColor:{type:"v3", value:new THREE.Color( 0x505050 )},
+			horizon:{type:"f", value: .5 },
+			spread:{type:"f", value: .25 },
+			topColor:{type:"v3", value:new THREE.Color( 0x202020 )},
 			bottomColor:{type:"v3", value:new THREE.Color( 0x101010 )}
 		},
 		vertexShader:	assetsLoader.env_vs,
@@ -104,8 +105,8 @@ function createMaterials(){
 
 function createMeshes() {
 
-    spider = new THREE.Mesh(assetsLoader.spider, materials.silver);
-    // scene.add(spider);
+    spider = new THREE.Mesh(assetsLoader.spider, materials.spiderTexture );
+    scene.add(spider);
 
     var env = new THREE.Mesh(new THREE.CylinderBufferGeometry(.5, .5, 1, 64), materials.environment);
     env.scale.multiplyScalar(1000);
