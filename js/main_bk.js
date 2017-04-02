@@ -109,7 +109,7 @@ window.onload = function(){
 		},
 		{
 			name: "invert",
-			url: "../assets/models/invert.js",type:assetsLoader.MOD
+			url: "../assets/models/suzanne_invert.js",type:assetsLoader.MOD
 		}
 
 
@@ -216,7 +216,7 @@ function readModel( cb ) {
 				tl.load( "../assets/textures/matcap/test_steel.jpg", function(tex) {
 					matCap = tex;
 
-					loader.load( '../assets/models/invert.js', function( inv ) {
+					loader.load( '../assets/models/suzanne_invert.js', function( inv ) {
 
 						// tl.load( "../assets/textures/matcap/generator8.jpg", function(tex) {
 						tl.load( "../assets/textures/matcap/JG_Drink01.png", function(tex) {

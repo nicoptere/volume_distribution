@@ -109,7 +109,7 @@ function readModel( cb ) {
 				tl.load( "../assets/textures/matcap/chrome_dark.png", function(tex){
 					matCap = tex;
 
-					loader.load( '../assets/models/invert.js', function( inv ) {
+					loader.load( '../assets/models/suzanne_invert.js', function( inv ) {
 
 						// tl.load( "../assets/textures/matcap/generator8.jpg", function(tex) {
 						tl.load( "../assets/textures/matcap/JG_Drink01.png", function(tex) {

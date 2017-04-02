@@ -33,10 +33,10 @@ window.onload = function(){
 		},
 		{
 			name: "invert",
-			url: "../assets/models/invert.js",type:assetsLoader.MOD
+			url: "../assets/models/suzanne_invert.js",type:assetsLoader.MOD
 		},
 
-		// /*
+		/*
 		 {
 		 name: "particles",
 		 url:"particles_65536_1.txt",			type:assetsLoader.TXT,
@@ -50,6 +50,13 @@ window.onload = function(){
 		 },//*/
 
 	];
+
+    var v0 = new THREE.Vector3(0,1,0);
+    var v1 = new THREE.Vector3(0,0.001,0);
+    v0.normalize();
+    v1.normalize();
+    console.log( v0.dot( v1 ) );
+
 
 	assetsLoader.load(queue, init);
 };
@@ -141,10 +148,10 @@ function createParticles(){
 
 	if( assetsLoader.particles === undefined ){
 
-		var count = Math.pow( 2, 16 );
 		var model = invertSkeleton;
+		var count = Math.pow( 2, 10 );
 
-		distribute( count, model );
+		assetsLoader.particles = Scatter.distribute( model, count );
 
 	}
 
@@ -164,113 +171,6 @@ function createParticles(){
 
 }
 
-function distribute( count, model ) {
-
-	//this will store the results
-	var coords = [];
-	var dests = [];
-
-	//this has an influence as to how the raycasting is performed
-	model.material.side = THREE.DoubleSide;
-
-	//we'll need this
-	model.geometry.computeFaceNormals();
-
-	//this is used to distributte the origins of the rays
-	model.geometry.computeBoundingBox();
-	var bbox = model.geometry.boundingBox;
-
-		// 'inflates' the box by 10% to prevent colinearity
-		// or coplanarity of the origin with the mesh
-
-		bbox.min.multiplyScalar( 1.1 );
-		bbox.max.multiplyScalar( 1.1 );
-
-	//to perform raycast
-	var raycaster = new THREE.Raycaster();
-	var o = new THREE.Vector3();
-	var d = new THREE.Vector3();
-
-	for( var i = 0; i < count; i++ ){
-
-		// randomize the rays origin
-		o.x = lerp( Math.random(), bbox.min.x, bbox.max.x );
-		o.y = lerp( Math.random(), bbox.min.y, bbox.max.y );
-		o.z = lerp( Math.random(), bbox.min.z, bbox.max.z );
-
-		//randomize the ray's direction
-		d.x = ( Math.random() - .5 );
-		d.y = ( Math.random() - .5 );
-		d.z = ( Math.random() - .5 );
-		d.normalize();
-
-		//shoots the ray
-		raycaster.set( o, d );
-
-		var intersections = raycaster.intersectObject( model, false );
-
-		var valid = intersections.length && intersections.length >= 2 && ( intersections.length % 2 == 0 );
-		if( valid ){
-
-			// make sure that the: origin - direction vector have the same
-			// direction as the normal of the faces they hit )
-
-			var dp0 = d.dot( intersections[1].face.normal ) <= -.1;
-
-			d.negate();
-			var dp1 = d.dot( intersections[0].face.normal ) <= -.1;
-
-			if( dp0 || dp1 ){
-				i--;
-				continue;
-			}
-
-			console.log( 'ok' );
-			coords.push( intersections[0].point.x, intersections[0].point.y, intersections[0].point.z );
-			dests.push( intersections[1].point.x, intersections[1].point.y, intersections[1].point.z );
-
-		}else{
-			i--;
-		}
-
-	}
-
-	assetsLoader.particles = {
-		pos:coords,
-		dst:dests
-	};
-
-}
-
-function particlesToString( decimalPrecision ){
-
-
-	var precision = decimalPrecision;
-	if( precision === undefined )precision = 3;
-	var coords = assetsLoader.particles.pos.map( function( v ){return v.toFixed( precision ); });
-	var dests = assetsLoader.particles.dst.map( function( v ){return v.toFixed( precision ); });
-
-	var count = ( coords.length / 3 );
-	var label = "particles_"+ count +".txt";
-	var data = coords.join(',') + "|" + dests.join(',') ;
-
-	var txtData = new Blob([data], { type: 'text/csv' });
-	var txtUrl = window.URL.createObjectURL(txtData);
-
-	var a = document.createElement( "a" );
-	a.setAttribute( "href", txtUrl );
-	a.setAttribute( "download", label );
-	a.innerHTML = label;
-
-	a.style.position = "absolute";
-	a.style.padding = "10px";
-	a.style.top = "0";
-	a.style.left = "0";
-	a.style.backgroundColor = "#FFF";
-
-	document.body.appendChild( a );
-
-}
 
 function render() {
 

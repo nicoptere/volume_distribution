@@ -18,6 +18,6 @@
 	"DbgName" : "default"
 	}],
 
-    "buffers": "invert.bin"
+    "buffers": "suzanne_invert.bin"
 
 }
