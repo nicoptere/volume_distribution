@@ -27,7 +27,8 @@ void main() {
 	 	 
 	 }
     gl_FragColor = c;
-//	float alpha = smoothstep( depth.x, depth.y, vZ );
-//	gl_FragColor.rgb *= mix(gl_FragColor.rgb*.25, gl_FragColor.rgb, alpha );
-	gl_FragColor.a *= step(visibility.x, vCounters) * step(vCounters,visibility.y) ;
+
+    float alpha = abs( sin( smoothstep(visibility.x, visibility.y, vCounters) * 3.14159 ) );
+    gl_FragColor.rgb *= pow( alpha,.5 );
+	gl_FragColor.a *= step(visibility.x, vCounters) * step(vCounters,visibility.y) * alpha;
 }

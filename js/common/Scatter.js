@@ -1,6 +1,5 @@
 var Scatter = function( scatter ){
 
-
     var raycaster;//THREE.raycaster: used to shoot rays at the mesh
     var o;//ray origin
     var d;//ray direction
@@ -114,7 +113,6 @@ var Scatter = function( scatter ){
                     i--;
                 }
             }
-
         }
 
         //resets the material side

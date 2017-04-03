@@ -62,14 +62,12 @@ float SimplexPerlin3D( vec3 P )
     //	sum with the kernel and return
     return dot( kernel_weights, grad_results ) * FINAL_NORMALIZATION;
 }
-uniform float time;
 varying vec3 e;
 varying vec3 n;
 
 void main() {
 
-//    vec3 t = vec3( 0, cos( time * .1 ), time * .1 );
-    vec3 pos = position;// + SimplexPerlin3D( position * 0.01 + t * 5. ) * .5;
+    vec3 pos = position;
 
     e = normalize( vec3( modelViewMatrix * vec4( pos, 1.0 ) ) );
     n = normalize( normalMatrix * normal );

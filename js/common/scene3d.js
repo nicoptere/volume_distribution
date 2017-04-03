@@ -37,7 +37,7 @@ function onResize() {
 
 }
 //utils
-// function lerp ( t, a, b ){ return a * (1-t) + b * t; }
+function lerp ( t, a, b ){ return a * (1-t) + b * t; }
 // function norm( t, a, b ){return ( t - a ) / ( b - a );}
 // function map( t, a0, b0, a1, b1 ){ return lerp( norm( t, a0, b0 ), a1, b1 );}
 

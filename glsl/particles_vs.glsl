@@ -1,13 +1,8 @@
-//attribute float pdistance;
-//attribute vec3 pnormal;
 attribute vec3 dest;
-attribute vec2 uvOffset;
-
 
 uniform vec2 bounds;
 uniform float time;
 uniform float modBig;
-uniform float modSmall;
 uniform float pointSize;
 uniform float alpha;
 
@@ -73,21 +68,20 @@ float noise(vec2 v)
 }
 
 varying float vAlpha;
-varying vec2 vUv;
 void main() {
 
     float t = time;
     float a = alpha;
 
     a = smoothstep( -1.,1., noise( vec2( position.x * position.y + time * 2. , time * .5 ) * .1 ) );
-    vec3 pos = mix( position, dest, bounds.x + a * bounds.y );
+    a = bounds.x + a * bounds.y;
+    vec3 pos = mix( position, dest, a );
 
     vAlpha = max( .25, a );
-    vUv = uvOffset;
 
     float N1 = modBig;
     float P1 = step(mod( floor( position.x * N1 ), N1 ), 1. );
-    gl_PointSize = 1. + ( pointSize * P1 );
+    gl_PointSize = 2. + ( pointSize * P1 );
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4( pos, 1.0 );
 

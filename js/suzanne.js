@@ -1,5 +1,5 @@
 
-var skeleton, invertSkeleton;
+var skeleton, invertSkeleton, env, particles;
 
 window.onload = function(){
 
@@ -52,14 +52,22 @@ window.onload = function(){
 function init() {
 
     init3D();
-    camera.position.z = 30;
+    camera.position.x = 0;
+    camera.position.y = 7;
+    camera.position.z = 20;
 
     createMaterials();
 
     createMeshes();
+	createParticles();
 
-    createParticles();
-    render();
+	scene.add(skeleton);
+	scene.add(invertSkeleton);
+	scene.add(env);
+	scene.add( particles );
+
+
+	render();
 
 }
 
@@ -112,7 +120,8 @@ function createMaterials(){
 		},
 		vertexShader:	assetsLoader.env_vs,
 		fragmentShader:	assetsLoader.env_fs,
-		side:THREE.BackSide
+		side:THREE.BackSide,
+		depthWrite:false
 	});
 
 }
@@ -120,14 +129,11 @@ function createMaterials(){
 function createMeshes() {
 
     skeleton = new THREE.Mesh(assetsLoader.skeleton, materials.silver);
-    scene.add(skeleton);
 
     invertSkeleton = new THREE.Mesh(assetsLoader.invert, materials.blue);
-    scene.add(invertSkeleton);
 
-    var env = new THREE.Mesh(new THREE.CylinderBufferGeometry(.5, .5, 1, 64), materials.environment);
+    env = new THREE.Mesh(new THREE.CylinderBufferGeometry(.5, .5, 1, 64), materials.environment);
     env.scale.multiplyScalar(1000);
-    scene.add(env);
 
 }
 
@@ -157,7 +163,6 @@ function createParticles(){
 	}
 	g.addAttribute( "uvOffset", new THREE.BufferAttribute( uvOffset, 2 ));
 	particles = new THREE.Points(g,materials.particles);
-	scene.add( particles );
 
 }
 
